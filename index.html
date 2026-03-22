@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数字ブロック落としゲーム</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a1a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Segoe UI', sans-serif;
+    overflow: hidden;
+  }
+  .stars {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .game-wrapper {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .side-panel {
+    width: 160px;
+    color: #fff;
+  }
+  .panel-box {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 14px;
+    backdrop-filter: blur(10px);
+  }
+  .panel-title {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 8px;
+  }
+  .score-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 0 20px rgba(100,200,255,0.8);
+  }
+  .level-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ffd700;
+    text-shadow: 0 0 15px rgba(255,215,0,0.6);
+  }
+  .combo-display {
+    font-size: 20px;
+    font-weight: 700;
+    color: #ff6b6b;
+    text-shadow: 0 0 15px rgba(255,107,107,0.8);
+    min-height: 28px;
+  }
+  canvas#nextCanvas {
+    display: block;
+    margin: 0 auto;
+    border-radius: 6px;
+  }
+  .controls-list {
+    font-size: 11px;
+    color: #999;
+    line-height: 1.8;
+  }
+  .controls-list span { color: #ccc; }
+  canvas#gameCanvas {
+    border-radius: 8px;
+    box-shadow: 0 0 60px rgba(100,150,255,0.3), 0 0 120px rgba(100,150,255,0.1);
+    display: block;
+  }
+  #overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(10,10,26,0.88);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    z-index: 10;
+    backdrop-filter: blur(4px);
+  }
+  #overlay h1 {
+    font-size: 32px;
+    font-weight: 900;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-align: center;
+  }
+  #overlay .subtitle {
+    font-size: 14px;
+    color: #aaa;
+    margin-bottom: 30px;
+    text-align: center;
+    line-height: 1.6;
+  }
+  #overlay button {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border: none;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    padding: 14px 40px;
+    border-radius: 30px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 20px rgba(102,126,234,0.5);
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  #overlay button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 30px rgba(102,126,234,0.7);
+  }
+  #overlay button:active { transform: translateY(0); }
+  .final-score {
+    font-size: 48px;
+    font-weight: 900;
+    color: #ffd700;
+    text-shadow: 0 0 30px rgba(255,215,0,0.6);
+    margin: 10px 0 20px;
+  }
+  .music-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.2s;
+    width: 100%;
+    text-align: center;
+  }
+  .music-btn:hover { background: rgba(255,255,255,0.2); }
+  .particle-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    pointer-events: none;
+    border-radius: 8px;
+  }
+</style>
+</head>
+<body>
+
+<canvas class="stars" id="starsCanvas"></canvas>
+
+<div class="game-wrapper">
+  <!-- Left Panel -->
+  <div class="side-panel">
+    <div class="panel-box">
+      <div class="panel-title">SCORE</div>
+      <div class="score-value" id="scoreDisplay">0</div>
+    </div>
+    <div class="panel-box">
+      <div class="panel-title">LEVEL</div>
+      <div class="level-value" id="levelDisplay">1</div>
+    </div>
+    <div class="panel-box">
+      <div class="panel-title">COMBO</div>
+      <div class="combo-display" id="comboDisplay">-</div>
+    </div>
+    <div class="panel-box">
+      <div class="panel-title">NEXT</div>
+      <canvas id="nextCanvas" width="100" height="120"></canvas>
+    </div>
+    <div class="panel-box">
+      <div class="music-btn" id="musicBtn" onclick="toggleMusic()">♪ BGM ON</div>
+    </div>
+  </div>
+
+  <!-- Game Canvas -->
+  <div style="position:relative;">
+    <canvas id="gameCanvas"></canvas>
+    <canvas class="particle-canvas" id="particleCanvas"></canvas>
+    <div id="overlay">
+      <h1>数字ブロック<br>落としゲーム</h1>
+      <div class="subtitle">
+        隣り合うブロックの合計が<br>
+        <strong style="color:#ffd700">10</strong> になると消えます！<br><br>
+        ← → 移動 &nbsp; ↑/Z 回転 &nbsp; ↓ 加速 &nbsp; Space ドロップ
+      </div>
+      <button onclick="startGame()">ゲームスタート</button>
+    </div>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="side-panel">
+    <div class="panel-box">
+      <div class="panel-title">CONTROLS</div>
+      <div class="controls-list">
+        <span>←→</span> 移動<br>
+        <span>↑ / Z</span> 回転<br>
+        <span>↓</span> 高速落下<br>
+        <span>SPACE</span> 即落下<br>
+      </div>
+    </div>
+    <div class="panel-box">
+      <div class="panel-title">HOW TO PLAY</div>
+      <div class="controls-list">
+        2個1組のブロックが<br>
+        落ちてきます。<br><br>
+        隣接するブロックの<br>
+        <span>合計が10</span>になると<br>
+        消えます！<br><br>
+        連鎖でボーナス<br>ポイントを狙え！
+      </div>
+    </div>
+    <div class="panel-box">
+      <div class="panel-title">LINES</div>
+      <div class="level-value" id="linesDisplay">0</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONSTANTS
+// ============================================================
+const COLS = 8;
+const ROWS = 16;
+const BLOCK_SIZE = 40;
+const CANVAS_W = COLS * BLOCK_SIZE;
+const CANVAS_H = ROWS * BLOCK_SIZE;
+
+// Colors for numbers 1-9
+const NUM_COLORS = [
+  null,
+  { bg: '#ff4757', glow: '#ff6b81', text: '#fff' }, // 1 red
+  { bg: '#ff7f50', glow: '#ffa07a', text: '#fff' }, // 2 coral
+  { bg: '#ffd700', glow: '#ffe066', text: '#333' }, // 3 gold
+  { bg: '#2ed573', glow: '#7bed9f', text: '#fff' }, // 4 green
+  { bg: '#1e90ff', glow: '#70a1ff', text: '#fff' }, // 5 blue
+  { bg: '#5352ed', glow: '#7876f3', text: '#fff' }, // 6 indigo
+  { bg: '#a855f7', glow: '#c084fc', text: '#fff' }, // 7 purple
+  { bg: '#ec4899', glow: '#f472b6', text: '#fff' }, // 8 pink
+  { bg: '#06b6d4', glow: '#67e8f9', text: '#fff' }, // 9 cyan
+];
+
+// ============================================================
+// GAME STATE
+// ============================================================
+let grid = [];
+let currentPair = null;
+let nextPair = null;
+let score = 0;
+let level = 1;
+let lines = 0;
+let combo = 0;
+let gameRunning = false;
+let gameOver = false;
+let dropTimer = 0;
+let dropInterval = 800;
+let lockDelay = false;
+let particles = [];
+
+// ============================================================
+// CANVAS SETUP
+// ============================================================
+const gameCanvas = document.getElementById('gameCanvas');
+const ctx = gameCanvas.getContext('2d');
+gameCanvas.width = CANVAS_W;
+gameCanvas.height = CANVAS_H;
+
+const particleCanvas = document.getElementById('particleCanvas');
+const pctx = particleCanvas.getContext('2d');
+particleCanvas.width = CANVAS_W;
+particleCanvas.height = CANVAS_H;
+
+const nextCanvas = document.getElementById('nextCanvas');
+const nctx = nextCanvas.getContext('2d');
+
+// Stars background
+const starsCanvas = document.getElementById('starsCanvas');
+const sctx = starsCanvas.getContext('2d');
+starsCanvas.width = window.innerWidth;
+starsCanvas.height = window.innerHeight;
+// initStars() called after starList is declared (see Stars section below)
+
+// ============================================================
+// AUDIO ENGINE (Web Audio API)
+// ============================================================
+let audioCtx = null;
+let musicOn = false;
+let bgmNodes = {};
+
+function getAudioCtx() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return audioCtx;
+}
+
+function toggleMusic() {
+  musicOn = !musicOn;
+  document.getElementById('musicBtn').textContent = musicOn ? '♪ BGM ON' : '♪ BGM OFF';
+  if (musicOn) {
+    startBGM();
+  } else {
+    stopBGM();
+  }
+}
+
+function startBGM() {
+  if (!musicOn) return;
+  const ac = getAudioCtx();
+  stopBGM();
+
+  const masterGain = ac.createGain();
+  masterGain.gain.value = 0.18;
+  masterGain.connect(ac.destination);
+  bgmNodes.master = masterGain;
+
+  // Simple looping melody using oscillators scheduled in sequence
+  playMelodyLoop(ac, masterGain);
+}
+
+function stopBGM() {
+  if (bgmNodes.master) {
+    try { bgmNodes.master.disconnect(); } catch(e){}
+  }
+  if (bgmNodes.melodyTimeout) {
+    clearTimeout(bgmNodes.melodyTimeout);
+  }
+  bgmNodes = {};
+}
+
+// Pentatonic scale melody
+const MELODY_NOTES = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25, 783.99];
+const MELODY_SEQ = [4,6,7,6,4,2,0,1,2,4,6,4,2,0,2,4];
+const BEAT_SEC = 0.18;
+
+function playMelodyLoop(ac, dest) {
+  if (!musicOn || !bgmNodes.master) return;
+  let t = ac.currentTime;
+  MELODY_SEQ.forEach((idx, i) => {
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = MELODY_NOTES[idx];
+    gain.gain.setValueAtTime(0, t + i * BEAT_SEC);
+    gain.gain.linearRampToValueAtTime(0.5, t + i * BEAT_SEC + 0.02);
+    gain.gain.linearRampToValueAtTime(0, t + i * BEAT_SEC + BEAT_SEC * 0.8);
+    osc.connect(gain);
+    gain.connect(dest);
+    osc.start(t + i * BEAT_SEC);
+    osc.stop(t + i * BEAT_SEC + BEAT_SEC);
+  });
+  const loopDuration = MELODY_SEQ.length * BEAT_SEC * 1000;
+  bgmNodes.melodyTimeout = setTimeout(() => playMelodyLoop(ac, dest), loopDuration - 100);
+}
+
+function playSoundErase(count) {
+  const ac = getAudioCtx();
+  const gain = ac.createGain();
+  gain.gain.value = 0.3;
+  gain.connect(ac.destination);
+
+  [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+    const osc = ac.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = freq + count * 50;
+    osc.connect(gain);
+    const t = ac.currentTime + i * 0.06;
+    osc.start(t);
+    osc.stop(t + 0.15);
+  });
+
+  gain.gain.setValueAtTime(0.3, ac.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.5);
+}
+
+function playSoundDrop() {
+  const ac = getAudioCtx();
+  const osc = ac.createOscillator();
+  const gain = ac.createGain();
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(200, ac.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(80, ac.currentTime + 0.15);
+  gain.gain.setValueAtTime(0.15, ac.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.15);
+  osc.connect(gain);
+  gain.connect(ac.destination);
+  osc.start();
+  osc.stop(ac.currentTime + 0.15);
+}
+
+function playSoundGameOver() {
+  const ac = getAudioCtx();
+  [440,415,392,370,349].forEach((freq, i) => {
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.2, ac.currentTime + i * 0.12);
+    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + i * 0.12 + 0.3);
+    osc.connect(gain);
+    gain.connect(ac.destination);
+    osc.start(ac.currentTime + i * 0.12);
+    osc.stop(ac.currentTime + i * 0.12 + 0.3);
+  });
+}
+
+function playSoundMove() {
+  const ac = getAudioCtx();
+  const osc = ac.createOscillator();
+  const gain = ac.createGain();
+  osc.type = 'sine';
+  osc.frequency.value = 300;
+  gain.gain.setValueAtTime(0.05, ac.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.06);
+  osc.connect(gain);
+  gain.connect(ac.destination);
+  osc.start();
+  osc.stop(ac.currentTime + 0.06);
+}
+
+// ============================================================
+// STARS BACKGROUND
+// ============================================================
+let starList = [];
+initStars(); // Called here after starList is declared
+function initStars() {
+  for (let i = 0; i < 150; i++) {
+    starList.push({
+      x: Math.random() * starsCanvas.width,
+      y: Math.random() * starsCanvas.height,
+      r: Math.random() * 1.5,
+      alpha: Math.random(),
+      speed: Math.random() * 0.005 + 0.002
+    });
+  }
+}
+
+function animateStars() {
+  sctx.clearRect(0, 0, starsCanvas.width, starsCanvas.height);
+  starList.forEach(s => {
+    s.alpha += s.speed;
+    if (s.alpha > 1) s.alpha = 0;
+    sctx.beginPath();
+    sctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    sctx.fillStyle = `rgba(255,255,255,${Math.sin(s.alpha * Math.PI)})`;
+    sctx.fill();
+  });
+  requestAnimationFrame(animateStars);
+}
+animateStars();
+
+// ============================================================
+// GRID
+// ============================================================
+function createGrid() {
+  return Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+}
+
+function isValidPosition(pair) {
+  return pair.blocks.every(b => {
+    const r = pair.row + b.dr;
+    const c = pair.col + b.dc;
+    return r >= 0 && r < ROWS && c >= 0 && c < COLS && grid[r][c] === 0;
+  });
+}
+
+// ============================================================
+// PAIR (2 blocks falling together)
+// ============================================================
+// Orientation: 0=vertical(top/bottom), 1=horizontal(left/right), 2=vertical(bottom/top), 3=horizontal(right/left)
+function createPair() {
+  const a = Math.ceil(Math.random() * 9);
+  const b = Math.ceil(Math.random() * 9);
+  return {
+    col: Math.floor(COLS / 2) - 1,
+    row: 0,
+    orientation: 0, // 0: a on top, b on bottom
+    blocks: [
+      { val: a, dr: 0, dc: 0 },
+      { val: b, dr: 1, dc: 0 }
+    ]
+  };
+}
+
+function rotatePair(pair) {
+  // Rotate clockwise: top/bottom -> left/right -> bottom/top -> right/left
+  const orientations = [
+    [{ dr: 0, dc: 0 }, { dr: 1, dc: 0 }],   // vertical a-top
+    [{ dr: 0, dc: 0 }, { dr: 0, dc: 1 }],   // horizontal a-left
+    [{ dr: 1, dc: 0 }, { dr: 0, dc: 0 }],   // vertical a-bottom (flipped)
+    [{ dr: 0, dc: 1 }, { dr: 0, dc: 0 }],   // horizontal a-right (flipped)
+  ];
+  const next = (pair.orientation + 1) % 4;
+  const newBlocks = pair.blocks.map((b, i) => ({
+    val: b.val,
+    dr: orientations[next][i].dr,
+    dc: orientations[next][i].dc
+  }));
+  const newPair = { ...pair, orientation: next, blocks: newBlocks };
+
+  // Wall kick: adjust col if out of bounds
+  for (let kick of [0, -1, 1, -2, 2]) {
+    const kicked = { ...newPair, col: newPair.col + kick };
+    if (isValidPosition(kicked)) return kicked;
+  }
+  return pair; // Can't rotate
+}
+
+// ============================================================
+// GAME LOGIC
+// ============================================================
+function startGame() {
+  grid = createGrid();
+  score = 0;
+  level = 1;
+  lines = 0;
+  combo = 0;
+  particles = [];
+  dropInterval = 800;
+  gameOver = false;
+  gameRunning = true;
+  nextPair = createPair();
+  spawnPair();
+  document.getElementById('overlay').style.display = 'none';
+  updateUI();
+  if (musicOn) startBGM();
+  startLoops();
+}
+
+function spawnPair() {
+  currentPair = nextPair || createPair();
+  nextPair = createPair();
+  drawNextPair();
+
+  if (!isValidPosition(currentPair)) {
+    endGame();
+  }
+}
+
+function lockPair() {
+  playSoundDrop();
+  currentPair.blocks.forEach(b => {
+    const r = currentPair.row + b.dr;
+    const c = currentPair.col + b.dc;
+    if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
+      grid[r][c] = b.val;
+    }
+  });
+  currentPair = null;
+  combo = 0;
+  setTimeout(() => {
+    checkAndClear();
+  }, 50);
+}
+
+function checkAndClear() {
+  let toRemove = new Set();
+  // Check all cells for adjacency summing to 10
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (!grid[r][c]) continue;
+      const v = grid[r][c];
+      // Check right
+      if (c + 1 < COLS && grid[r][c + 1] && v + grid[r][c + 1] === 10) {
+        toRemove.add(`${r},${c}`);
+        toRemove.add(`${r},${c + 1}`);
+      }
+      // Check down
+      if (r + 1 < ROWS && grid[r + 1][c] && v + grid[r + 1][c] === 10) {
+        toRemove.add(`${r},${c}`);
+        toRemove.add(`${r + 1},${c}`);
+      }
+    }
+  }
+
+  if (toRemove.size === 0) {
+    combo = 0;
+    document.getElementById('comboDisplay').textContent = '-';
+    if (gameRunning && !gameOver) spawnPair();
+    return;
+  }
+
+  combo++;
+  const removed = toRemove.size;
+  const basePoints = removed * 100;
+  const comboBonus = combo > 1 ? combo * 150 : 0;
+  const gained = basePoints + comboBonus;
+  score += gained;
+  lines += Math.floor(removed / 2);
+
+  // Level up
+  const newLevel = Math.floor(lines / 10) + 1;
+  if (newLevel > level) {
+    level = newLevel;
+    dropInterval = Math.max(150, 800 - (level - 1) * 65);
+    restartDropTimer();
+  }
+
+  // Particles
+  toRemove.forEach(key => {
+    const [r, c] = key.split(',').map(Number);
+    spawnParticles(c * BLOCK_SIZE + BLOCK_SIZE / 2, r * BLOCK_SIZE + BLOCK_SIZE / 2, NUM_COLORS[grid[r][c]]);
+    grid[r][c] = 0;
+  });
+
+  playSoundErase(removed);
+  updateUI();
+
+  // Show combo
+  if (combo > 1) {
+    document.getElementById('comboDisplay').textContent = `×${combo} COMBO!`;
+    // Show score popup
+    showScorePopup(gained, combo);
+  } else {
+    document.getElementById('comboDisplay').textContent = `+${gained}`;
+  }
+
+  // Apply gravity
+  setTimeout(() => {
+    applyGravity();
+    setTimeout(() => checkAndClear(), 200);
+  }, 200);
+}
+
+function applyGravity() {
+  for (let c = 0; c < COLS; c++) {
+    let writeRow = ROWS - 1;
+    for (let r = ROWS - 1; r >= 0; r--) {
+      if (grid[r][c] !== 0) {
+        grid[writeRow][c] = grid[r][c];
+        if (writeRow !== r) grid[r][c] = 0;
+        writeRow--;
+      }
+    }
+    while (writeRow >= 0) {
+      grid[writeRow][c] = 0;
+      writeRow--;
+    }
+  }
+}
+
+function endGame() {
+  gameRunning = false;
+  gameOver = true;
+  stopLoops();
+  stopBGM();
+  playSoundGameOver();
+  const overlay = document.getElementById('overlay');
+  overlay.innerHTML = `
+    <h1>GAME OVER</h1>
+    <div style="color:#aaa;font-size:13px;margin-bottom:5px;">FINAL SCORE</div>
+    <div class="final-score">${score.toLocaleString()}</div>
+    <div style="color:#888;font-size:12px;margin-bottom:25px;">LEVEL ${level} &nbsp;|&nbsp; LINES ${lines}</div>
+    <button onclick="startGame()">もう一度プレイ</button>
+  `;
+  overlay.style.display = 'flex';
+}
+
+function updateUI() {
+  document.getElementById('scoreDisplay').textContent = score.toLocaleString();
+  document.getElementById('levelDisplay').textContent = level;
+  document.getElementById('linesDisplay').textContent = lines;
+}
+
+// ============================================================
+// SCORE POPUP
+// ============================================================
+let scorePopups = [];
+function showScorePopup(points, combo) {
+  scorePopups.push({
+    text: `+${points}${combo > 1 ? ` ×${combo}COMBO` : ''}`,
+    x: CANVAS_W / 2,
+    y: CANVAS_H / 2,
+    alpha: 1,
+    vy: -1.5,
+    life: 80
+  });
+}
+
+// ============================================================
+// PARTICLES
+// ============================================================
+function spawnParticles(x, y, color) {
+  for (let i = 0; i < 12; i++) {
+    const angle = (Math.PI * 2 * i) / 12 + Math.random() * 0.5;
+    const speed = 2 + Math.random() * 4;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      r: 3 + Math.random() * 4,
+      color: color ? color.bg : '#fff',
+      alpha: 1,
+      life: 40 + Math.random() * 20
+    });
+  }
+}
+
+// ============================================================
+// DRAWING
+// ============================================================
+function drawBlock(context, x, y, val, alpha = 1) {
+  const c = NUM_COLORS[val];
+  if (!c) return;
+  const s = BLOCK_SIZE;
+  const pad = 2;
+
+  context.globalAlpha = alpha;
+
+  // Glow
+  context.shadowColor = c.glow;
+  context.shadowBlur = 12;
+
+  // Background gradient
+  const grad = context.createLinearGradient(x + pad, y + pad, x + s - pad, y + s - pad);
+  grad.addColorStop(0, lightenColor(c.bg, 30));
+  grad.addColorStop(1, c.bg);
+  context.fillStyle = grad;
+  roundRect(context, x + pad, y + pad, s - pad * 2, s - pad * 2, 8);
+  context.fill();
+
+  // Inner highlight
+  context.shadowBlur = 0;
+  const hlGrad = context.createLinearGradient(x + pad, y + pad, x + pad, y + s / 2);
+  hlGrad.addColorStop(0, 'rgba(255,255,255,0.35)');
+  hlGrad.addColorStop(1, 'rgba(255,255,255,0)');
+  context.fillStyle = hlGrad;
+  roundRect(context, x + pad, y + pad, s - pad * 2, (s - pad * 2) / 2, 8);
+  context.fill();
+
+  // Number
+  context.shadowBlur = 0;
+  context.fillStyle = c.text;
+  context.font = `bold ${Math.floor(s * 0.5)}px 'Segoe UI', sans-serif`;
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.fillText(val, x + s / 2, y + s / 2);
+
+  context.globalAlpha = 1;
+  context.shadowBlur = 0;
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function lightenColor(hex, amount) {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const r = Math.min(255, (num >> 16) + amount);
+  const g = Math.min(255, ((num >> 8) & 0xff) + amount);
+  const b = Math.min(255, (num & 0xff) + amount);
+  return `rgb(${r},${g},${b})`;
+}
+
+function drawGrid() {
+  // Background
+  ctx.fillStyle = '#0d0d20';
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 1;
+  for (let r = 0; r <= ROWS; r++) {
+    ctx.beginPath();
+    ctx.moveTo(0, r * BLOCK_SIZE);
+    ctx.lineTo(CANVAS_W, r * BLOCK_SIZE);
+    ctx.stroke();
+  }
+  for (let c = 0; c <= COLS; c++) {
+    ctx.beginPath();
+    ctx.moveTo(c * BLOCK_SIZE, 0);
+    ctx.lineTo(c * BLOCK_SIZE, CANVAS_H);
+    ctx.stroke();
+  }
+
+  // Placed blocks
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (grid[r][c]) {
+        drawBlock(ctx, c * BLOCK_SIZE, r * BLOCK_SIZE, grid[r][c]);
+      }
+    }
+  }
+}
+
+function drawCurrentPair() {
+  if (!currentPair) return;
+
+  // Ghost
+  let ghostRow = currentPair.row;
+  while (true) {
+    const ghost = { ...currentPair, row: ghostRow + 1 };
+    if (!isValidPosition(ghost)) break;
+    ghostRow++;
+  }
+  if (ghostRow !== currentPair.row) {
+    currentPair.blocks.forEach(b => {
+      const r = ghostRow + b.dr;
+      const c = currentPair.col + b.dc;
+      if (r >= 0 && r < ROWS) {
+        ctx.globalAlpha = 0.2;
+        const color = NUM_COLORS[b.val];
+        ctx.fillStyle = color ? color.bg : '#fff';
+        roundRect(ctx, c * BLOCK_SIZE + 2, r * BLOCK_SIZE + 2, BLOCK_SIZE - 4, BLOCK_SIZE - 4, 8);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    });
+  }
+
+  // Actual pair
+  currentPair.blocks.forEach(b => {
+    const r = currentPair.row + b.dr;
+    const c = currentPair.col + b.dc;
+    if (r >= 0) {
+      drawBlock(ctx, c * BLOCK_SIZE, r * BLOCK_SIZE, b.val);
+    }
+  });
+}
+
+function drawParticles() {
+  pctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+  particles = particles.filter(p => p.life > 0);
+  particles.forEach(p => {
+    pctx.globalAlpha = p.alpha;
+    pctx.fillStyle = p.color;
+    pctx.shadowColor = p.color;
+    pctx.shadowBlur = 8;
+    pctx.beginPath();
+    pctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    pctx.fill();
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.15;
+    p.alpha -= 1 / p.life;
+    p.r *= 0.97;
+    p.life--;
+  });
+
+  // Score popups
+  scorePopups = scorePopups.filter(sp => sp.life > 0);
+  scorePopups.forEach(sp => {
+    pctx.globalAlpha = sp.alpha;
+    pctx.font = 'bold 20px Segoe UI';
+    pctx.textAlign = 'center';
+    pctx.fillStyle = '#ffd700';
+    pctx.shadowColor = '#ffd700';
+    pctx.shadowBlur = 15;
+    pctx.fillText(sp.text, sp.x, sp.y);
+    sp.y += sp.vy;
+    sp.alpha -= 0.015;
+    sp.life--;
+  });
+
+  pctx.globalAlpha = 1;
+  pctx.shadowBlur = 0;
+}
+
+function drawNextPair() {
+  nctx.fillStyle = 'transparent';
+  nctx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+  if (!nextPair) return;
+
+  const ox = (nextCanvas.width - BLOCK_SIZE * 2) / 2;
+  const oy = (nextCanvas.height - BLOCK_SIZE * 2) / 2;
+  nextPair.blocks.forEach(b => {
+    drawBlock(nctx, ox + b.dc * BLOCK_SIZE, oy + b.dr * BLOCK_SIZE, b.val);
+  });
+}
+
+// ============================================================
+// GAME LOOP
+// ============================================================
+let dropTimerId = null;
+let renderTimerId = null;
+
+function startLoops() {
+  stopLoops();
+  // Drop timer: moves blocks down at dropInterval ms
+  dropTimerId = setInterval(() => {
+    if (!gameRunning || !currentPair) return;
+    moveDown();
+  }, dropInterval);
+  // Render loop: redraws at ~60fps
+  renderTimerId = setInterval(() => {
+    if (!gameRunning) return;
+    drawGrid();
+    drawCurrentPair();
+    drawParticles();
+  }, 16);
+}
+
+function stopLoops() {
+  if (dropTimerId) { clearInterval(dropTimerId); dropTimerId = null; }
+  if (renderTimerId) { clearInterval(renderTimerId); renderTimerId = null; }
+}
+
+function restartDropTimer() {
+  if (dropTimerId) { clearInterval(dropTimerId); dropTimerId = null; }
+  dropTimerId = setInterval(() => {
+    if (!gameRunning || !currentPair) return;
+    moveDown();
+  }, dropInterval);
+}
+
+function moveDown() {
+  if (!currentPair) return;
+  const moved = { ...currentPair, row: currentPair.row + 1 };
+  if (isValidPosition(moved)) {
+    currentPair = moved;
+  } else {
+    lockPair();
+  }
+}
+
+// ============================================================
+// INPUT
+// ============================================================
+const keys = {};
+document.addEventListener('keydown', e => {
+  if (keys[e.code]) return;
+  keys[e.code] = true;
+
+  if (!gameRunning || !currentPair) return;
+
+  switch (e.code) {
+    case 'ArrowLeft': {
+      const moved = { ...currentPair, col: currentPair.col - 1 };
+      if (isValidPosition(moved)) { currentPair = moved; playSoundMove(); }
+      break;
+    }
+    case 'ArrowRight': {
+      const moved = { ...currentPair, col: currentPair.col + 1 };
+      if (isValidPosition(moved)) { currentPair = moved; playSoundMove(); }
+      break;
+    }
+    case 'ArrowDown':
+      e.preventDefault();
+      moveDown();
+      accTime = 0;
+      break;
+    case 'ArrowUp':
+    case 'KeyZ':
+      e.preventDefault();
+      currentPair = rotatePair(currentPair);
+      playSoundMove();
+      break;
+    case 'Space':
+      e.preventDefault();
+      while (true) {
+        const moved = { ...currentPair, row: currentPair.row + 1 };
+        if (isValidPosition(moved)) {
+          currentPair = moved;
+        } else {
+          break;
+        }
+      }
+      lockPair();
+      accTime = 0;
+      break;
+  }
+});
+
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+// ============================================================
+// INITIAL DRAW
+// ============================================================
+ctx.fillStyle = '#0d0d20';
+ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+</script>
+</body>
+</html>
