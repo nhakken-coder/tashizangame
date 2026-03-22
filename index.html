@@ -157,6 +157,104 @@
     pointer-events: none;
     border-radius: 8px;
   }
+
+  /* ==================== MOBILE ==================== */
+  .mobile-topbar {
+    display: none;
+    width: 100%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
+    padding: 10px 12px;
+    backdrop-filter: blur(10px);
+    justify-content: space-around;
+    align-items: center;
+    color: #fff;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .m-stat { text-align: center; }
+  .m-stat-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: #888;
+    margin-bottom: 3px;
+    text-transform: uppercase;
+  }
+  .m-stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 0 12px rgba(100,200,255,0.7);
+  }
+  .m-lv { color: #ffd700 !important; text-shadow: 0 0 10px rgba(255,215,0,0.6) !important; }
+  .m-cb { color: #ff6b6b !important; font-size: 13px !important; min-height: 18px; }
+  .touch-pad {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 340px;
+    padding: 8px 0 4px;
+    flex-shrink: 0;
+  }
+  .touch-row { display: flex; gap: 8px; justify-content: center; }
+  .tbtn {
+    background: rgba(255,255,255,0.08);
+    border: 1.5px solid rgba(255,255,255,0.22);
+    border-radius: 14px;
+    color: #fff;
+    font-size: 22px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.08s, transform 0.06s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    line-height: 1;
+  }
+  .tbtn.pressed { background: rgba(255,255,255,0.26); transform: scale(0.90); }
+  .tbtn small { font-size: 9px; color: #bbb; }
+  .tb-lr { width: 76px; height: 64px; }
+  .tb-rot {
+    width: 88px; height: 64px;
+    background: rgba(102,126,234,0.18);
+    border-color: rgba(102,126,234,0.5);
+  }
+  .tb-dn { width: 118px; height: 52px; }
+  .tb-drop {
+    width: 158px; height: 52px;
+    background: rgba(255,215,0,0.12);
+    border-color: rgba(255,215,0,0.45);
+    color: #ffd700;
+  }
+  .desktop-hint {}
+  .mobile-hint { display: none; }
+
+  @media (max-width: 660px) {
+    body {
+      align-items: flex-start;
+      overflow-y: hidden;
+      padding: 6px;
+    }
+    .game-wrapper {
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+    }
+    .side-panel { display: none; }
+    .mobile-topbar { display: flex; }
+    .touch-pad { display: flex; }
+    .desktop-hint { display: none; }
+    .mobile-hint { display: block; }
+  }
 </style>
 </head>
 <body>
@@ -164,6 +262,27 @@
 <canvas class="stars" id="starsCanvas"></canvas>
 
 <div class="game-wrapper">
+
+  <!-- Mobile Top Bar (visible only on mobile) -->
+  <div class="mobile-topbar" id="mobileTopBar">
+    <div class="m-stat">
+      <div class="m-stat-label">SCORE</div>
+      <div class="m-stat-value" id="mScoreDisplay">0</div>
+    </div>
+    <div class="m-stat">
+      <div class="m-stat-label">LEVEL</div>
+      <div class="m-stat-value m-lv" id="mLevelDisplay">1</div>
+    </div>
+    <div class="m-stat">
+      <div class="m-stat-label">COMBO</div>
+      <div class="m-stat-value m-cb" id="mComboDisplay">-</div>
+    </div>
+    <div class="m-stat">
+      <div class="m-stat-label">NEXT</div>
+      <canvas id="mNextCanvas" width="60" height="72"></canvas>
+    </div>
+  </div>
+
   <!-- Left Panel -->
   <div class="side-panel">
     <div class="panel-box">
@@ -188,17 +307,36 @@
   </div>
 
   <!-- Game Canvas -->
-  <div style="position:relative;">
+  <div style="position:relative;" id="canvasWrapper">
     <canvas id="gameCanvas"></canvas>
     <canvas class="particle-canvas" id="particleCanvas"></canvas>
     <div id="overlay">
       <h1>数字ブロック<br>落としゲーム</h1>
-      <div class="subtitle">
+      <div class="subtitle desktop-hint">
         隣り合うブロックの合計が<br>
         <strong style="color:#ffd700">10</strong> になると消えます！<br><br>
         ← → 移動 &nbsp; ↑/Z 回転 &nbsp; ↓ 加速 &nbsp; Space ドロップ
       </div>
+      <div class="subtitle mobile-hint">
+        隣り合うブロックの合計が<br>
+        <strong style="color:#ffd700">10</strong> になると消えます！<br><br>
+        👆 タップ:回転 &nbsp; 👈👉 スワイプ:移動<br>
+        ⬇ 下スワイプ:即落下
+      </div>
       <button onclick="startGame()">ゲームスタート</button>
+    </div>
+  </div>
+
+  <!-- Touch Controls (visible only on mobile) -->
+  <div class="touch-pad" id="touchPad">
+    <div class="touch-row">
+      <button class="tbtn tb-lr" id="tbLeft">◀<br><small>移動</small></button>
+      <button class="tbtn tb-rot" id="tbRotate">↻<br><small>回転</small></button>
+      <button class="tbtn tb-lr" id="tbRight">▶<br><small>移動</small></button>
+    </div>
+    <div class="touch-row">
+      <button class="tbtn tb-dn" id="tbDown">▼<br><small>高速落下</small></button>
+      <button class="tbtn tb-drop" id="tbDrop">⬇<br><small>即落下</small></button>
     </div>
   </div>
 
@@ -539,6 +677,7 @@ function startGame() {
   document.getElementById('overlay').style.display = 'none';
   updateUI();
   if (musicOn) startBGM();
+  updateCanvasSize();
   startLoops();
 }
 
@@ -590,7 +729,7 @@ function checkAndClear() {
 
   if (toRemove.size === 0) {
     combo = 0;
-    document.getElementById('comboDisplay').textContent = '-';
+    setComboDisplay('-');
     if (gameRunning && !gameOver) spawnPair();
     return;
   }
@@ -623,11 +762,11 @@ function checkAndClear() {
 
   // Show combo
   if (combo > 1) {
-    document.getElementById('comboDisplay').textContent = `×${combo} COMBO!`;
+    setComboDisplay(`×${combo} COMBO!`);
     // Show score popup
     showScorePopup(gained, combo);
   } else {
-    document.getElementById('comboDisplay').textContent = `+${gained}`;
+    setComboDisplay(`+${gained}`);
   }
 
   // Apply gravity
@@ -675,6 +814,17 @@ function updateUI() {
   document.getElementById('scoreDisplay').textContent = score.toLocaleString();
   document.getElementById('levelDisplay').textContent = level;
   document.getElementById('linesDisplay').textContent = lines;
+  // Mobile displays
+  const ms = document.getElementById('mScoreDisplay');
+  const ml = document.getElementById('mLevelDisplay');
+  if (ms) ms.textContent = score.toLocaleString();
+  if (ml) ml.textContent = level;
+}
+
+function setComboDisplay(text) {
+  document.getElementById('comboDisplay').textContent = text;
+  const mc = document.getElementById('mComboDisplay');
+  if (mc) mc.textContent = text;
 }
 
 // ============================================================
@@ -891,6 +1041,21 @@ function drawNextPair() {
   nextPair.blocks.forEach(b => {
     drawBlock(nctx, ox + b.dc * BLOCK_SIZE, oy + b.dr * BLOCK_SIZE, b.val);
   });
+
+  // Mobile mini preview
+  const mnc = document.getElementById('mNextCanvas');
+  if (mnc) {
+    const mc = mnc.getContext('2d');
+    mc.clearRect(0, 0, mnc.width, mnc.height);
+    const mScale = mnc.width / (BLOCK_SIZE * 2);
+    mc.save();
+    mc.scale(mScale, mScale);
+    const moy = (mnc.height / mScale - BLOCK_SIZE * 2) / 2;
+    nextPair.blocks.forEach(b => {
+      drawBlock(mc, b.dc * BLOCK_SIZE, moy + b.dr * BLOCK_SIZE, b.val);
+    });
+    mc.restore();
+  }
 }
 
 // ============================================================
@@ -987,6 +1152,137 @@ document.addEventListener('keydown', e => {
 });
 
 document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+// ============================================================
+// CANVAS SCALING (Mobile)
+// ============================================================
+function updateCanvasSize() {
+  const wrapper = document.getElementById('canvasWrapper');
+  if (!wrapper) return;
+  if (window.innerWidth > 660) {
+    // Desktop: natural size
+    gameCanvas.style.width = '';
+    gameCanvas.style.height = '';
+    particleCanvas.style.width = '';
+    particleCanvas.style.height = '';
+    return;
+  }
+  // Mobile: fit to screen
+  const pad = 12;
+  const topbarH = document.getElementById('mobileTopBar').offsetHeight + 6;
+  const touchpadH = document.getElementById('touchPad').offsetHeight + 6;
+  const availH = window.innerHeight - topbarH - touchpadH - pad * 2 - 20;
+  const availW = window.innerWidth - pad * 2;
+  const scale = Math.min(1, availW / CANVAS_W, availH / CANVAS_H);
+  const w = Math.floor(CANVAS_W * scale);
+  const h = Math.floor(CANVAS_H * scale);
+  gameCanvas.style.width    = w + 'px';
+  gameCanvas.style.height   = h + 'px';
+  particleCanvas.style.width  = w + 'px';
+  particleCanvas.style.height = h + 'px';
+}
+window.addEventListener('resize', updateCanvasSize);
+window.addEventListener('orientationchange', () => setTimeout(updateCanvasSize, 200));
+
+// ============================================================
+// TOUCH CONTROLS
+// ============================================================
+(function() {
+  // --- Swipe / Tap on game canvas ---
+  let tx0 = 0, ty0 = 0, tt0 = 0;
+  gameCanvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+    tx0 = e.touches[0].clientX;
+    ty0 = e.touches[0].clientY;
+    tt0 = Date.now();
+  }, { passive: false });
+
+  gameCanvas.addEventListener('touchend', e => {
+    e.preventDefault();
+    if (!gameRunning || !currentPair) return;
+    const dx = e.changedTouches[0].clientX - tx0;
+    const dy = e.changedTouches[0].clientY - ty0;
+    const dt = Date.now() - tt0;
+    const dist = Math.hypot(dx, dy);
+
+    // Scale thresholds by current canvas display size
+    const displayScale = gameCanvas.offsetWidth / CANVAS_W || 1;
+    const blockPx = BLOCK_SIZE * displayScale;
+
+    if (dist < 14 && dt < 260) {
+      // Tap → rotate
+      currentPair = rotatePair(currentPair);
+      playSoundMove();
+    } else if (Math.abs(dx) >= Math.abs(dy)) {
+      // Horizontal swipe → move
+      const steps = Math.max(1, Math.round(Math.abs(dx) / blockPx));
+      const dir = dx > 0 ? 1 : -1;
+      for (let i = 0; i < steps; i++) {
+        const m = { ...currentPair, col: currentPair.col + dir };
+        if (isValidPosition(m)) { currentPair = m; playSoundMove(); } else break;
+      }
+    } else if (dy > blockPx * 0.8) {
+      // Swipe down → instant drop
+      while (isValidPosition({ ...currentPair, row: currentPair.row + 1 }))
+        currentPair = { ...currentPair, row: currentPair.row + 1 };
+      lockPair();
+    }
+  }, { passive: false });
+
+  gameCanvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+
+  // --- On-screen buttons ---
+  function makeTouchBtn(id, onPress, repeat) {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    let timer = null;
+    const fire = () => { if (gameRunning && currentPair) onPress(); };
+    const stop = () => {
+      if (timer) { clearInterval(timer); timer = null; }
+      btn.classList.remove('pressed');
+    };
+    btn.addEventListener('touchstart', e => {
+      e.preventDefault();
+      btn.classList.add('pressed');
+      fire();
+      if (repeat) timer = setInterval(fire, 110);
+    }, { passive: false });
+    btn.addEventListener('touchend',   e => { e.preventDefault(); stop(); }, { passive: false });
+    btn.addEventListener('touchcancel', stop);
+    // Also support mouse (for desktop testing)
+    btn.addEventListener('mousedown', () => { fire(); if (repeat) timer = setInterval(fire, 110); });
+    btn.addEventListener('mouseup',   stop);
+    btn.addEventListener('mouseleave', stop);
+  }
+
+  makeTouchBtn('tbLeft', () => {
+    const m = { ...currentPair, col: currentPair.col - 1 };
+    if (isValidPosition(m)) { currentPair = m; playSoundMove(); }
+  }, true);
+
+  makeTouchBtn('tbRight', () => {
+    const m = { ...currentPair, col: currentPair.col + 1 };
+    if (isValidPosition(m)) { currentPair = m; playSoundMove(); }
+  }, true);
+
+  makeTouchBtn('tbRotate', () => {
+    currentPair = rotatePair(currentPair);
+    playSoundMove();
+  }, false);
+
+  makeTouchBtn('tbDown', () => { moveDown(); }, true);
+
+  makeTouchBtn('tbDrop', () => {
+    while (isValidPosition({ ...currentPair, row: currentPair.row + 1 }))
+      currentPair = { ...currentPair, row: currentPair.row + 1 };
+    lockPair();
+  }, false);
+
+  // Prevent scroll when touching touch pad
+  document.getElementById('touchPad').addEventListener('touchstart', e => {
+    e.stopPropagation();
+  }, { passive: true });
+})();
 
 // ============================================================
 // INITIAL DRAW
